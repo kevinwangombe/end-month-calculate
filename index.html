@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>End of Month Indicator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'end-month': '#dc2626',
+                        'mid-month': '#ea580c',
+                        'early-month': '#16a34a'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-gray-300 min-h-screen flex flex-col items-center justify-center p-4">
+<div class="max-w-4xl w-full">
+    <header class="text-center mb-10">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">End of Month Indicator</h1>
+        <p class="text-gray-600 text-lg">A visual card that shows how close the current date is to the end of the month</p>
+    </header>
+
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Main Card -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 flex-1">
+            <div class="flex justify-between items-start mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Current Month Status</h2>
+                <div class="text-right">
+                    <div id="current-date" class="text-lg font-semibold text-gray-700"></div>
+                    <div id="days-remaining" class="text-3xl font-bold mt-1"></div>
+                </div>
+            </div>
+
+            <!-- Status Indicator -->
+            <div class="mb-8">
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-600">Start of Month</span>
+                    <span class="text-sm font-medium text-gray-600">End of Month</span>
+                </div>
+                <div class="h-4 bg-gradient-to-r from-early-month via-mid-month to-end-month rounded-full overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-white rounded-full transition-all duration-500 ease-out"></div>
+                </div>
+                <div id="indicator-position" class="h-6 w-6 bg-gray-800 rounded-full -mt-3 relative transition-all duration-500 ease-out"></div>
+            </div>
+
+            <!-- Status Message -->
+            <div id="status-card" class="rounded-xl p-5 mb-8 transition-all duration-300">
+                <div class="flex items-center">
+                    <div id="status-icon" class="text-3xl mr-4"></div>
+                    <div>
+                        <h3 id="status-title" class="text-xl font-bold"></h3>
+                        <p id="status-message" class="text-gray-700 mt-1"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Month Information -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-500 mb-1">Days Passed</div>
+                    <div id="days-passed" class="text-2xl font-bold text-gray-800"></div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-500 mb-1">Month Length</div>
+                    <div id="month-length" class="text-2xl font-bold text-gray-800"></div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-500 mb-1">Percentage Passed</div>
+                    <div id="percentage-passed" class="text-2xl font-bold text-gray-800"></div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-500 mb-1">Next Month Starts</div>
+                    <div id="next-month" class="text-2xl font-bold text-gray-800"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls and Info Panel -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 w-full lg:w-80">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Controls & Information</h3>
+
+            <!-- Date Picker -->
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-medium mb-2">Test with a different date</label>
+                <input type="date" id="date-picker" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+            </div>
+
+            <!-- Threshold Slider -->
+            <div class="mb-8">
+                <div class="flex justify-between mb-2">
+                    <label class="text-gray-700 text-sm font-medium">End of month threshold</label>
+                    <span id="threshold-value" class="text-blue-600 font-bold">5 days</span>
+                </div>
+                <input type="range" id="threshold-slider" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider">
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>1 day</span>
+                    <span>10 days</span>
+                </div>
+                <p class="text-gray-600 text-sm mt-3">Days from month end that trigger "near end of month" status.</p>
+            </div>
+
+            <!-- Reset Button -->
+            <button id="reset-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                <i class="fas fa-redo mr-2"></i> Reset to Today
+            </button>
+
+            <!-- Info Section -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h4 class="font-bold text-gray-800 mb-3">How it works</h4>
+                <ul class="space-y-2 text-sm text-gray-600">
+                    <li class="flex items-start">
+                        <i class="fas fa-circle text-early-month text-xs mt-1 mr-2"></i>
+                        <span>Early Month: First 50% of the month</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-circle text-mid-month text-xs mt-1 mr-2"></i>
+                        <span>Mid Month: 50%-80% of the month</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-circle text-end-month text-xs mt-1 mr-2"></i>
+                        <span>Near End: Last 20% or within threshold days</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center mt-10 text-gray-500 text-sm">
+        <p>This card visually indicates when the current date is near the end of the month.</p>
+        <p>You can test it with any date using the date picker.</p>
+    </footer>
+</div>
+
+<script>
+    // DOM Elements
+    const currentDateEl = document.getElementById('current-date');
+    const daysRemainingEl = document.getElementById('days-remaining');
+    const progressBarEl = document.getElementById('progress-bar');
+    const indicatorPositionEl = document.getElementById('indicator-position');
+    const statusCardEl = document.getElementById('status-card');
+    const statusIconEl = document.getElementById('status-icon');
+    const statusTitleEl = document.getElementById('status-title');
+    const statusMessageEl = document.getElementById('status-message');
+    const daysPassedEl = document.getElementById('days-passed');
+    const monthLengthEl = document.getElementById('month-length');
+    const percentagePassedEl = document.getElementById('percentage-passed');
+    const nextMonthEl = document.getElementById('next-month');
+    const datePickerEl = document.getElementById('date-picker');
+    const thresholdSliderEl = document.getElementById('threshold-slider');
+    const thresholdValueEl = document.getElementById('threshold-value');
+    const resetBtn = document.getElementById('reset-btn');
+
+    // Initialize with current date
+    let currentDate = new Date();
+    let threshold = parseInt(thresholdSliderEl.value);
+
+    // Format date to YYYY-MM-DD for date picker
+    function formatDateForInput(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // Get days in month
+    function getDaysInMonth(date) {
+        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    }
+
+    // Calculate days remaining in month
+    function getDaysRemaining(date) {
+        const daysInMonth = getDaysInMonth(date);
+        const currentDay = date.getDate();
+        return daysInMonth - currentDay;
+    }
+
+    // Determine status based on days remaining
+    function getMonthStatus(date, threshold) {
+        const daysInMonth = getDaysInMonth(date);
+        const currentDay = date.getDate();
+        const daysRemaining = getDaysRemaining(date);
+        const percentagePassed = (currentDay / daysInMonth) * 100;
+
+        if (daysRemaining <= threshold) {
+            return {
+                status: 'near-end',
+                title: 'Near End of Month',
+                message: `Only ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining in the month.`,
+                icon: 'fas fa-exclamation-circle',
+                color: 'bg-end-month',
+                textColor: 'text-end-month',
+                borderColor: 'border-end-month'
+            };
+        } else if (percentagePassed >= 80) {
+            return {
+                status: 'approaching-end',
+                title: 'Approaching Month End',
+                message: 'The month is in its final phase.',
+                icon: 'fas fa-hourglass-half',
+                color: 'bg-mid-month',
+                textColor: 'text-mid-month',
+                borderColor: 'border-mid-month'
+            };
+        } else if (percentagePassed >= 50) {
+            return {
+                status: 'mid-month',
+                title: 'Mid Month',
+                message: 'The month is progressing.',
+                icon: 'fas fa-calendar-alt',
+                color: 'bg-mid-month',
+                textColor: 'text-mid-month',
+                borderColor: 'border-mid-month'
+            };
+        } else {
+            return {
+                status: 'early-month',
+                title: 'Early Month',
+                message: 'The month is just beginning.',
+                icon: 'fas fa-calendar-plus',
+                color: 'bg-early-month',
+                textColor: 'text-early-month',
+                borderColor: 'border-early-month'
+            };
+        }
+    }
+
+    // Update UI with current date and status
+    function updateUI(date) {
+        const daysInMonth = getDaysInMonth(date);
+        const currentDay = date.getDate();
+        const daysRemaining = getDaysRemaining(date);
+        const percentagePassed = (currentDay / daysInMonth) * 100;
+        const progressPercentage = percentagePassed;
+
+        // Format date for display
+        const formattedDate = date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Update date display
+        currentDateEl.textContent = formattedDate;
+
+        // Update days remaining
+        daysRemainingEl.textContent = `${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left`;
+        daysRemainingEl.className = `text-3xl font-bold mt-1 ${
+            daysRemaining <= threshold ? 'text-end-month' :
+                percentagePassed >= 80 ? 'text-mid-month' :
+                    'text-early-month'
+        }`;
+
+        // Update progress bar and indicator
+        progressBarEl.style.width = `${100 - progressPercentage}%`;
+        indicatorPositionEl.style.left = `${progressPercentage}%`;
+
+        // Get and display status
+        const status = getMonthStatus(date, threshold);
+        statusCardEl.className = `rounded-xl p-5 mb-8 transition-all duration-300 ${status.color} bg-opacity-10 border-l-4 ${status.borderColor}`;
+        statusIconEl.className = `${status.icon} ${status.textColor}`;
+        statusTitleEl.textContent = status.title;
+        statusTitleEl.className = `text-xl font-bold ${status.textColor}`;
+        statusMessageEl.textContent = status.message;
+
+        // Update month info
+        daysPassedEl.textContent = currentDay;
+        monthLengthEl.textContent = daysInMonth;
+        percentagePassedEl.textContent = `${Math.round(percentagePassed)}%`;
+
+        // Calculate next month start
+        const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+        const nextMonthFormatted = nextMonth.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+        });
+        nextMonthEl.textContent = nextMonthFormatted;
+
+        // Set threshold display
+        thresholdValueEl.textContent = `${threshold} day${threshold !== 1 ? 's' : ''}`;
+    }
+
+    // Initialize with today's date
+    function init() {
+        // Set date picker to today
+        datePickerEl.value = formatDateForInput(currentDate);
+
+        // Set threshold from slider
+        threshold = parseInt(thresholdSliderEl.value);
+
+        // Update UI
+        updateUI(currentDate);
+
+        // Event listeners
+        datePickerEl.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            currentDate = selectedDate;
+            updateUI(currentDate);
+        });
+
+        thresholdSliderEl.addEventListener('input', function() {
+            threshold = parseInt(this.value);
+            updateUI(currentDate);
+        });
+
+        resetBtn.addEventListener('click', function() {
+            currentDate = new Date();
+            datePickerEl.value = formatDateForInput(currentDate);
+            thresholdSliderEl.value = 5;
+            threshold = 5;
+            updateUI(currentDate);
+        });
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<style>
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 22px;
+        width: 22px;
+        border-radius: 50%;
+        background: #3b82f6;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .slider::-moz-range-thumb {
+        height: 22px;
+        width: 22px;
+        border-radius: 50%;
+        background: #3b82f6;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    #indicator-position {
+        left: 0%;
+        transform: translateX(-50%);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    #progress-bar {
+        width: 100%;
+        float: right;
+    }
+
+    @media (max-width: 768px) {
+        .grid-cols-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+</body>
+</html>
